@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: ChatApp
+
+#########################################
+#  auto refresh (server restart skip)
+#########################################
+  thymeleaf:
+    prefix: classpath:/templates/
+    cache: false
+
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
+
+  freemarker:
+    cache: false
+
+#########################################
+#  file upload available size
+#########################################
+  servlet:
+    multipart:
+      max-file-size: 500MB #1GB # default 1MB
+      max-request-size: 500MB #1GB # default 10MB
