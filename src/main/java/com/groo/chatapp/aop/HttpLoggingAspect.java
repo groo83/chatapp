@@ -3,6 +3,7 @@ package com.groo.chatapp.aop;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -19,6 +20,7 @@ import java.util.Map;
 public class HttpLoggingAspect {
 
     //@Around("within(@org.springframework.web.bind.annotation.RestController *)")
+    @Around("within(@org.springframework.web.bind.annotation.Controller *)")
     public Object httpLogging(ProceedingJoinPoint joinPoint) throws Throwable {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = attributes.getRequest();

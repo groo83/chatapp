@@ -1,19 +1,27 @@
 package com.groo.chatapp.domain.chat.api;
 
-import com.groo.chatapp.domain.chat.dto.ChatMessage;
+import com.groo.chatapp.domain.chat.dto.ChatMessageDto;
+import com.groo.chatapp.domain.chat.service.ChatMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 import java.util.Base64;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
 @RestController
@@ -21,19 +29,39 @@ import java.util.Base64;
 public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final ChatMessageService messageService;
 
-    @MessageMapping("/chat") // ws:// STOMP 프로토콜 사용 경로 맵핑 : stompClient.send("/app/chat" , /app prefix 설정 : config 참고
-    // @SendTo("/topic/messages") // /topic/messages로 구독한 클라이언트에게 메시지 전송
-    public void handleMessage(@Payload ChatMessage message) throws Exception {
-        if ("file".equals(message.getType())) {
-            message.setFileUrl("/files/download/" + URLEncoder.encode(message.getFileName(), StandardCharsets.UTF_8).replaceAll("\\+", "%20"));
+
+    @MessageMapping("/chat")
+    public void handleMessage(@Payload ChatMessageDto message, Authentication authentication) {
+        if (isFileMessage(message)) {
+            String fileUrl = generateFileUrl(message.getFileName());
+            message.setFileUrl(fileUrl);
         }
 
-        messagingTemplate.convertAndSend("/topic/messages", message);
+        sendMessageToSubscribers(message);
+        // todo redis에 저장
+        saveMessage(message, authentication);
     }
 
-    private static void fileEncodeBase64(ChatMessage message) throws IOException {
-        // 파일 처리 로직
+
+    private boolean isFileMessage(ChatMessageDto message) {
+        return "file".equals(message.getType());
+    }
+
+    private String generateFileUrl(String fileName) {
+        return "/files/download/" + encodeFileName(fileName);
+    }
+
+    private String encodeFileName(String fileName) {
+        return URLEncoder.encode(fileName, UTF_8).replaceAll("\\+", "%20");
+    }
+
+    private void sendMessageToSubscribers(ChatMessageDto message) {
+        messagingTemplate.convertAndSend("/topic/"+ message.getRoomId() + "/messages", message);
+    }
+
+    private void fileEncodeBase64(ChatMessageDto message) throws IOException {
         String fileName = message.getFileName();
         String fileData = message.getFileData();
 
@@ -53,5 +81,9 @@ public class ChatController {
         }
 
         message.setContent("File uploaded successfully: " + fileName);
+    }
+
+    private void saveMessage(ChatMessageDto message, Authentication authentication) {
+        messageService.saveMessage(message, authentication);
     }
 }

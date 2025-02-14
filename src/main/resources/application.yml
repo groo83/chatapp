@@ -2,6 +2,12 @@ spring:
   application:
     name: ChatApp
 
+  datasource:
+    url: jdbc:h2:mem:db
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
 #########################################
 #  auto refresh (server restart skip)
 #########################################
@@ -25,3 +31,34 @@ spring:
     multipart:
       max-file-size: 500MB #1GB # default 1MB
       max-request-size: 500MB #1GB # default 10MB
+
+#########################################
+#  reids
+#########################################
+  redis:
+    host: ${REDIS_HOST:localhost} #my-redis #localhost
+    port: ${REDIS_PORT:6379} # localhost:6379 는 기본값, 로컬에서는 설정 생략 가능
+    password: ${REDIS_PASSWORD}
+
+  config:
+    import: optional:file:.env[.properties]
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+
+#########################################
+#  jwt
+#########################################
+jwt:
+  secret: ${JWT_SECRET}
+
+  access:
+    expiration: 20000
+    header: Authorization
+
+  refresh:
+    expiration: 90
+    header: Authorization-refresh
