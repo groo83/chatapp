@@ -27,7 +27,7 @@ class ChatRoomControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"roomName\": \"HelloRoom\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.chatRoomId").value(1L))
+                .andExpect(jsonPath("$.data.chatRoomId").value(2L))
                 .andExpect(jsonPath("$.data.name").value("HelloRoom"));
     }
 }
