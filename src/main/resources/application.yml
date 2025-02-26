@@ -48,7 +48,7 @@ logging:
     org:
       springframework:
         security: DEBUG
-
+      hibernate.SQL: DEBUG
 #########################################
 #  jwt
 #########################################
