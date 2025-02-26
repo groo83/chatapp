@@ -13,7 +13,6 @@ public enum ErrorCode {
     EXIST_EMAIL(404,"M001", "이미 이메일이 존재합니다."),
     INVALID_USER(404,"M002", "아이디와 비밀번호가 일치하지 않습니다"),
     UNAUTHORIZED(401, "A001", "인증되지 않은 사용자입니다."),
-
     ;
 
     private final int status;
