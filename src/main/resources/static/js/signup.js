@@ -13,40 +13,40 @@ function validatePassword() {
 }
 
 document.getElementById("signupForm").addEventListener("submit", async function (event) {
-  event.preventDefault(); // 기본 폼 제출 동작 방지
+    event.preventDefault(); // 기본 폼 제출 동작 방지
 
-  const email = document.getElementById("email").value;
-  const nickname = document.getElementById("nickname").value;
-  const password = document.getElementById("password").value;
-  const errorMessageElement = document.getElementById("errorMessage");
+    const email = document.getElementById("email").value;
+    const nickname = document.getElementById("nickname").value;
+    const password = document.getElementById("password").value;
+    const errorMessageElement = document.getElementById("errorMessage");
 
-  // 서버로 보낼 데이터
-  const requestData = {
-    email: email,
-    password: password,
-    nickname: nickname,
-  };
+    // 서버로 보낼 데이터
+    const requestData = {
+        email: email,
+        password: password,
+        nickname: nickname,
+    };
 
-  try {
-    const response = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestData),
-    });
+    try {
+        const response = await fetch("/api/auth/signup", {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestData),
+        });
 
-    if (response.ok) {
-      // 회원가입 성공
-      alert("Registration successful! Redirecting to login page...");
-      window.location.href = "/login"; // 로그인 페이지로 리다이렉트
-    } else {
-      // 에러 처리
-      const errorData = await response.json();
-      errorMessageElement.textContent = errorData.message || "An error occurred. Please try again.";
+        if (response.ok) {
+            // 회원가입 성공
+            alert("Registration successful! Redirecting to login page...");
+            window.location.href = "/login";
+        } else {
+            // 에러 처리
+            const errorData = await response.json();
+            errorMessageElement.textContent = errorData.message || "An error occurred. Please try again.";
+        }
+    } catch (error) {
+        errorMessageElement.textContent = "Network error. Please try again later.";
+        console.error("Error:", error);
     }
-  } catch (error) {
-    errorMessageElement.textContent = "Network error. Please try again later.";
-    console.error("Error:", error);
-  }
 });

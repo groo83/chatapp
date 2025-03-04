@@ -27,6 +27,6 @@ public class CustomUserArgumentResolver implements HandlerMethodArgumentResolver
             return MemberDto.from((CustomUserDetails) authentication.getPrincipal());
         }
 
-        throw new UnauthenticatedUserException("인증되지 않은 사용자입니다.");
+            throw new UnauthenticatedUserException();
     }
 }

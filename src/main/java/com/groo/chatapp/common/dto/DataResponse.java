@@ -1,20 +1,24 @@
 package com.groo.chatapp.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.ToString;
 
 @Getter
 @ToString
+
 public class DataResponse<T> extends BaseResDto {
 
     private final T data;
 
-    private DataResponse(T data) {
+    @JsonCreator
+    private DataResponse(@JsonProperty("data") T data) {
         super();
         this.data = data;
     }
 
-    private DataResponse(T data, String message) {
+    private DataResponse(@JsonProperty("data") T data, String message) {
         super(message);
         this.data = data;
     }
@@ -31,4 +35,7 @@ public class DataResponse<T> extends BaseResDto {
         return new DataResponse<>(null);
     }
 
+    public static <T> DataResponse<T> of(T data, String message) {
+        return new DataResponse<>(data, message);
+    }
 }

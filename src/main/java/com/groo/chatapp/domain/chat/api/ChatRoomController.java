@@ -34,14 +34,11 @@ public class ChatRoomController {
         return DataResponse.create(chatRoomService.findChatRooms());
     }
 
-    @GetMapping("/{roomId}")
+    @GetMapping("/{roomId}/messages")
     @ResponseStatus(value = HttpStatus.OK)
-    public DataResponse<ChatRoomResDto> enterChatRoom(@PathVariable("roomId") Long roomId) {
-        return DataResponse.create(chatRoomService.enterChatRoom(roomId));
+    public DataResponse<ChatRoomResDto> enterChatRoom(@PathVariable("roomId") Long roomId,
+                                                      @RequestParam(name = "firstId", required = false) String firstId,
+                                                      @RequestParam(name = "size", required = false, defaultValue = "20") int size) {
+        return DataResponse.create(chatRoomService.enterChatRoom(roomId, firstId, size));
     }
-
-/*    @GetMapping("/{roomId}/users")
-    public ResponseEntity<Set<String>> getChatRoomUsers(@PathVariable("roomId") Long roomId) {
-        return ResponseEntity.ok(chatRoomService.getChatRoomUsers(roomId));
-    }*/
 }

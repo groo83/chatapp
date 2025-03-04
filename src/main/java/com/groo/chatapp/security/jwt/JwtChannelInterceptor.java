@@ -1,4 +1,4 @@
-package com.groo.chatapp.common.jwt;
+package com.groo.chatapp.security.jwt;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
@@ -8,9 +8,11 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+
+import static com.groo.chatapp.security.constants.SecurityConstants.AUTHORIZATION_HEADER;
+import static com.groo.chatapp.security.constants.SecurityConstants.BEARER_PREFIX;
 
 /**
  * STOMP 인증 정보 유지
@@ -27,9 +29,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) { //CONNECT -> SEND 수정
-            String token = accessor.getFirstNativeHeader(JwtFilter.AUTHORIZATION_HEADER);
+            String token = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER);
 
-            if (token != null && token .startsWith(JwtFilter.BEARER_PREFIX)) {
+            if ((token != null) && token.startsWith(BEARER_PREFIX)) {
                 token = token.substring(7);
 
                 Authentication authentication = tokenProvider.getAuthentication(token);

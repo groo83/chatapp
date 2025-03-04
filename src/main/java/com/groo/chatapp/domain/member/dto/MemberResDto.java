@@ -1,6 +1,6 @@
 package com.groo.chatapp.domain.member.dto;
 
-import com.groo.chatapp.common.jwt.TokenDto;
+import com.groo.chatapp.security.jwt.TokenDto;
 import com.groo.chatapp.domain.member.Member;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,11 +29,5 @@ public class MemberResDto {
                 .refreshToken(dto.getRefreshToken())
                 .accessTokenExpiresIn(dto.getAccessTokenExpiresIn())
                 .build();
-    }
-
-    @Builder
-    public MemberResDto(String email, String nickname) {
-        this.email = email;
-        this.nickname = nickname;
     }
 }

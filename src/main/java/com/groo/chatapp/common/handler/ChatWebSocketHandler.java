@@ -1,4 +1,4 @@
-package com.groo.chatapp.handler;
+package com.groo.chatapp.common.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.TextMessage;
@@ -13,6 +13,7 @@ import java.util.Map;
 /**
  * STOMP 프로토콜 사용으로 주석처리 : Controller @MessageMapping, @SendTo 사용
  */
+@Deprecated
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 /*
     @Override

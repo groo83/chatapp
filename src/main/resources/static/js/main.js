@@ -1,10 +1,20 @@
 // 채팅방 목록을 저장하는 변수
 let chatRooms = [];
 let nickname;
-var stompClient = null; // Stomp.over(socket);
+var stompClient = null;
+let firstMessageId = null;
+let isLoading = false;
+// WebSocket and STOMP setup
+var droppedFile = null;
+let messageQueue = [];
+const accessToken = localStorage.getItem("accessToken");
+
+// DOM elements
+let chatMessages;
+const nicknameElement = document.getElementById('nicknameElement');
+
 
 document.addEventListener('DOMContentLoaded', function() {
-
   getMember();
 });
 
@@ -105,10 +115,18 @@ function displayChatRooms() {
 }
 
 // 채팅방 입장 함수
-async function enterChatRoom(roomId) {
+function enterChatRoom(roomId, firstMessageId) {
+    getRecentMessages(roomId);
+}
+
+async function getRecentMessages(roomId, firstMessageId = null) {
+    var param = '';
+    if (firstMessageId) {
+        param = '?firstId=' + firstMessageId;
+    }
     try {
         // 서버에서 채팅방 상세 정보 가져오기
-        const response = await fetch(`/api/chatroom/${roomId}`, {
+        const response = await fetch(`/api/chatroom/${roomId}/messages${param}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -120,7 +138,11 @@ async function enterChatRoom(roomId) {
             const roomData = await response.json();
             console.dir(roomData);
 
-            // 채팅방의 메시지 및 기타 정보를 표시하는 함수를 호출
+            if(firstMessageId) {
+                addPagingMessages(roomData.data.messages);
+                return;
+            }
+
             displayChatRoom(roomData.data);
             connectWebSocket(roomData.data.chatRoomId);
 
@@ -141,12 +163,12 @@ function displayChatRoom(roomData) {
     chatContainer.innerHTML = `
 
         <div class="chat-header">
+            <span class="back-btn" onclick="exitChatRoom()">&larr; 뒤로</span>
             <h3>${roomData.name}</h3>
             <div class="user-list" id="userList">
             </div>
         </div>
         <div class="chat-messages" id="chatMessages">
-
         </div>
         <!-- File Drop Area -->
         <div class="file-drop-area" id="dropArea">Drag and drop a file here or click to upload</div>
@@ -154,7 +176,7 @@ function displayChatRoom(roomData) {
         <!-- Input Section -->
         <div class="chat-input">
             <div class="input-group">
-                <input type="text" id="chatInput" class="form-control" placeholder="Type a message...">
+                <input type="text" id="chatInput" class="form-control" placeholder="메시지를 입력하세요...">
                 <button id="sendButton" class="btn btn-primary" type="button">
                     Send
                 </button>
@@ -164,9 +186,14 @@ function displayChatRoom(roomData) {
 
     `;
     chatMessages = document.getElementById('chatMessages');
-    roomData.messages.forEach(message => {
-        showMessage(message);
-    });
+
+    parseMessages(roomData.messages);
+
+    document.getElementById('chatRoomListContainer').style.display = 'none';
+    document.getElementById('chatContainer').style.display = 'flex';
+
+    // 스크롤 하단 설정
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 async function findChatRooms() {
@@ -215,28 +242,33 @@ function loadChatRoomScript() {
 }
 
 // Display received message
-function showMessage(message) {
+function showMessage(message, chatPageArea) {
     var chatMessageElement = document.createElement('div');
-    chatMessageElement.className = `chat-message ${message.sender === nicknameElement.innerHTML.trim() ? 'message-sent' : 'message-received'}`;
+    chatMessageElement.className = `chat-message ${
+                                        message.type === "enter"
+                                            ? "message-system"
+                                            : message.sender === nicknameElement.innerHTML.trim()
+                                            ? "message-sent"
+                                            : "message-received"
+                                   }`;
     chatMessageElement.innerHTML = `
         <div class="message-content">
-            <small class="d-block">${message.sender}</small>
+
+            ${message.type !== "enter" ? `<small class="d-block">${message.sender}</small>` : ''}
+
             ${message.fileUrl ? `<a href="${message.fileUrl}" id="downloadLink" download>${message.fileName}</a>` : ''}
             ${message.content ? `<p>${message.content}</p>` : ''}
         </div>
     `;
+
+    if (chatPageArea) {
+        chatPageArea.appendChild(chatMessageElement);
+        return;
+    }
+
     chatMessages.appendChild(chatMessageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
 }
 
-// WebSocket and STOMP setup
-var droppedFile = null;
-let messageQueue = [];
-const accessToken = localStorage.getItem("accessToken");
-
-// DOM elements
-let chatMessages;
-const nicknameElement = document.getElementById('nicknameElement');
 
 function connectWebSocket(roomId) {
 
@@ -249,7 +281,7 @@ function connectWebSocket(roomId) {
         return;
     }
 
-    stompClient.connect({ 'Authorization': `Bearer ${accessToken}` }, function (frame) { // STOMP 헤더에 jwt 설정
+    stompClient.connect({ 'Authorization': `Bearer ${accessToken}` }, function (frame) {
         console.log('Connected: ' + frame);
         stompClient.subscribe(`/topic/${roomId}/messages`, function (message) {
             var chatMessage = JSON.parse(message.body);
@@ -259,6 +291,7 @@ function connectWebSocket(roomId) {
         stompClient.subscribe(`/topic/${roomId}/users`, function (response) {
             updateUserList(JSON.parse(response.body));
         });
+
         joinChat(roomId);
     }, function (error) {
         console.error("WebSocket connection error:", error);
@@ -338,6 +371,42 @@ function updateUserList(users) {
     const userList = document.getElementById("userList");
     userList.innerHTML = users.join(", ");
 }
+
 function isScriptLoaded(scriptName) {
     return Array.from(document.scripts).some(script => script.src.includes(scriptName));
+}
+
+function exitChatRoom() {
+    document.getElementById('chatContainer').style.display = 'none';
+    document.getElementById('chatRoomListContainer').style.display = 'block';
+}
+
+
+// 이전 메시지 불러오기 (스크롤 시 호출)
+async function loadOlderMessages(roomId) {
+    if (isLoading) return;
+    isLoading = true;
+
+    getRecentMessages(roomId, firstMessageId);
+
+    isLoading = false;
+}
+
+function addPagingMessages(messages) {
+    const chatPageArea = document.createElement('div');
+
+
+    parseMessages(messages, chatPageArea);
+    // 스크롤 paging
+    chatMessages.prepend(chatPageArea);
+}
+
+function parseMessages(messages, chatPageArea) {
+    if(messages.length > 0){
+        firstMessageId = messages[0].messageId;
+    }
+
+    messages.forEach(message => {
+        showMessage(message, chatPageArea);
+    });
 }

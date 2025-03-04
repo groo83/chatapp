@@ -1,7 +1,7 @@
 package com.groo.chatapp.config;
 
 import com.groo.chatapp.aop.WebSocketLoggingInterceptor;
-import com.groo.chatapp.common.jwt.JwtChannelInterceptor;
+import com.groo.chatapp.security.jwt.JwtChannelInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;

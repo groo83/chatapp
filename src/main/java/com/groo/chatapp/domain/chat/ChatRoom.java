@@ -5,9 +5,6 @@ import com.groo.chatapp.domain.member.Member;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
-import java.util.Set;
-
 @Entity
 @Getter
 @Table(name = "chat_room")
@@ -20,7 +17,7 @@ public class ChatRoom extends BaseEntity {
 
     private String name;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
 
     @Builder

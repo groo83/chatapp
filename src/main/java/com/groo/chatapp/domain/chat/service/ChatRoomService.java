@@ -1,18 +1,20 @@
 package com.groo.chatapp.domain.chat.service;
 
 import com.groo.chatapp.common.code.ErrorCode;
+import com.groo.chatapp.common.exception.EntityNotFoundException;
+import com.groo.chatapp.common.redis.RedisKeyGenerator;
+import com.groo.chatapp.common.redis.RedisService;
+import com.groo.chatapp.common.valid.NicknameValidator;
 import com.groo.chatapp.domain.chat.ChatRoom;
 import com.groo.chatapp.domain.chat.dto.ChatMessageDto;
 import com.groo.chatapp.domain.chat.dto.ChatRoomReqDto;
 import com.groo.chatapp.domain.chat.dto.ChatRoomResDto;
-import com.groo.chatapp.domain.chat.repository.ChatMessageRepository;
 import com.groo.chatapp.domain.chat.repository.ChatRoomRepository;
 import com.groo.chatapp.domain.member.Member;
 import com.groo.chatapp.domain.member.dto.MemberDto;
-import com.groo.chatapp.domain.member.repository.MemberRepository;
-import com.groo.chatapp.common.exception.BusinessException;
+import com.groo.chatapp.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,20 +29,15 @@ import java.util.stream.Collectors;
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
-    private final ChatMessageRepository messageRepository;
-    private final MemberRepository memberRepository;
-
-    private final RedisTemplate<String, String> redisTemplate;
-    private static final String CHATROOM_KEY_PREFIX = "chatroom:";
-    private static final String CHATROOM_KEY_USERS = ":users";
-
-    public void createChatRoom(ChatRoomReqDto reqDto) {
-        createChatRoom(reqDto, null);
-    }
+    private final MemberService memberService;
+    private final ChatMessageService chatMessageService;
+    private final RedisService redisService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final NicknameValidator nicknameValidator;
 
     @Transactional
     public ChatRoomResDto createChatRoom(ChatRoomReqDto reqDto, MemberDto memberDto) {
-        Member member = getMember(memberDto);
+        Member member = memberService.findByEmail(memberDto.getEmail());
         ChatRoom chatRoom = chatRoomRepository.save(reqDto.toEntity(reqDto, member));
         return ChatRoomResDto.fromEntity(chatRoom);
     }
@@ -52,70 +49,73 @@ public class ChatRoomService {
                 .collect(Collectors.toList());
     }
 
-    public ChatRoomResDto enterChatRoom(Long roomId) {
+    public ChatRoomResDto enterChatRoom(Long roomId, String firstId, int size) {
         ChatRoom chatRoom = getChatRoom(roomId);
-        List<ChatMessageDto> result = messageRepository.findByChatRoomIdOrderByCreatedDateAsc(roomId)
-                .stream()
-                .map(ChatMessageDto::fromEntity)
-                .collect(Collectors.toList());
 
-        return ChatRoomResDto.fromEntity(chatRoom, result);
+        List<ChatMessageDto> recentMessages = chatMessageService.getRecentMessages(roomId, firstId, size);
+
+        return ChatRoomResDto.fromEntity(chatRoom, recentMessages);
     }
 
     private ChatRoom getChatRoom(Long roomId) {
         return chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CHATROOM));
+                .orElseThrow(() -> new EntityNotFoundException(ErrorCode.CHATROOM_NOT_FOUND));
     }
 
-    private String getChatRoomKey(Long roomId) {
-        return CHATROOM_KEY_PREFIX + roomId + CHATROOM_KEY_USERS;
-    }
 
-    public Set<String> joinChatRoom(Long roomId, String nickname) {
-        /*if (!isValidNickname(nickname)) {
+    public void addUserToChatRoom(Long roomId, String nickname) {
+        /*if (!nicknameValidator.isValidNickname(nickname)) {
             throw new IllegalArgumentException("Invalid nickname");
         }*/
-        String key = getChatRoomKey(roomId);
-        addUserToChatRoom(key, nickname);
 
-        return getChatRoomUsers(key);
+        Set<String> users = addUserToRoomAndReturnUsers(roomId, nickname);
+        sendUpdatedUserList(roomId, users);
+
+    }
+
+    private Set<String> addUserToRoomAndReturnUsers(Long roomId, String nickname) {
+        String key = RedisKeyGenerator.getChatRoomKey(roomId);
+        Set<String> joinUsers = redisService.getChatRoomUsers(key);
+
+        if (joinUsers.contains(nickname)) {
+            return joinUsers;
+        }
+
+        notifyUserJoin(roomId, nickname, joinUsers);
+
+        redisService.addUserToChatRoom(key, nickname);
+
+        return redisService.getChatRoomUsers(key);
+    }
+
+    private void notifyUserJoin(Long roomId, String nickname, Set<String> users) {
+        sendUserJoinMessage(roomId, nickname);
+    }
+
+    private void sendUserJoinMessage(Long roomId, String nickname) {
+        chatMessageService.handleMessageAndNotifySubscribers(getMessageDto(roomId, nickname), null);
+    }
+
+    private void sendUpdatedUserList(Long roomId, Set<String> users) {
+        messagingTemplate.convertAndSend("/topic/"+ roomId + "/users", users);
     }
 
     public Set<String> leaveChatRoom(Long roomId, String nickname) {
-        /*if (!isValidNickname(nickname)) {
+        /*if (!nicknameValidator.isValidNickname(nickname)) {
             throw new IllegalArgumentException("Invalid nickname");
         }*/
-        String key = getChatRoomKey(roomId);
+        String key = RedisKeyGenerator.getChatRoomKey(roomId);
 
-        removeUserToChatRoom(key, nickname);
-        return getChatRoomUsers(key);
+        redisService.removeUserToChatRoom(key, nickname);
+        return redisService.getChatRoomUsers(key);
     }
 
-    private void addUserToChatRoom(String key, String nickname) {
-        redisTemplate.opsForSet().add(key, nickname);
+    private ChatMessageDto getMessageDto(Long roomId, String nickname) {
+        return ChatMessageDto.builder()
+                .roomId(roomId)
+                .type("enter")
+                .sender(nickname)
+                .build();
     }
 
-    private void removeUserToChatRoom(String key, String nickname) {
-        redisTemplate.opsForSet().remove(key, nickname);
-    }
-
-    public Set<String> getChatRoomUsers(String key) {
-        return redisTemplate.opsForSet().members(key);
-    }
-
-    private boolean isValidNickname(String nickname) {
-        if (nickname == null || nickname.trim().isEmpty()) {
-            return false;
-        }
-        String regex = "^[a-zA-Z0-9가-힣]{3,20}$";
-        return nickname.matches(regex);
-    }
-
-    private Member getMember(MemberDto memberDto) {
-        return memberDto != null ?
-                memberRepository.findByEmail(memberDto.getEmail()).orElseThrow(() ->
-                        new BusinessException(ErrorCode.USER_NOT_FOUND))
-                : memberRepository.findByEmail("test").orElseThrow(); // todo remove  테스트를 위함
-
-    }
 }

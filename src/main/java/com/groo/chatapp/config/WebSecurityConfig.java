@@ -1,13 +1,15 @@
 package com.groo.chatapp.config;
 
 
-import com.groo.chatapp.common.jwt.JwtAccessDeniedHandler;
-import com.groo.chatapp.common.jwt.JwtAuthenticationEntryPoint;
-import com.groo.chatapp.common.jwt.JwtFilter;
-import com.groo.chatapp.common.jwt.TokenProvider;
+import com.groo.chatapp.security.constants.SecurityConstants;
+import com.groo.chatapp.security.jwt.JwtAccessDeniedHandler;
+import com.groo.chatapp.security.jwt.JwtAuthenticationEntryPoint;
+import com.groo.chatapp.security.jwt.JwtFilter;
+import com.groo.chatapp.security.jwt.TokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -35,15 +37,13 @@ public class WebSecurityConfig {
                 //        .anyRequest().permitAll());
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/","/files/**","/main","/register","/api/**", "/home", // todo "/files/**" 제거 후 main.js 에서 downloadLink click 이벤트로 구현 필요
-                                "/js/**","/ws-stomp/**").permitAll() // 회원가입 허용
+                        .requestMatchers(SecurityConstants.PUBLIC_URLS).permitAll()
                         .anyRequest().authenticated()
                 )
+                .httpBasic(Customizer.withDefaults())
                 .formLogin(form -> form
                         .loginPage("/login") // 사용자 정의 로그인 요청 페이지
                         .usernameParameter("email") // 사용자 ID 파라미터
-                        //.passwordParameter("password") // 비밀번호 파라미터
-                        //.defaultSuccessUrl("/main", true) // 로그인 성공 시 이동할 URL
                         .permitAll()
                 )
                 .logout(logout -> logout
@@ -55,7 +55,7 @@ public class WebSecurityConfig {
                 )
                 .sessionManagement(
                         session -> session.sessionCreationPolicy
-                                (SessionCreationPolicy.STATELESS) // 세션을 사용하지 않기 때문에 세션 설정을 Stateless 로 설정
+                                (SessionCreationPolicy.STATELESS) // 세션 미사용하므로, Stateless 로 설정
                 ).exceptionHandling((exceptionHandling) ->
                         exceptionHandling
                                 .accessDeniedHandler(jwtAccessDeniedHandler)
@@ -67,13 +67,9 @@ public class WebSecurityConfig {
 
     // H2 DB, Swagger Spring Security ignoring
     @Bean
-    public WebSecurityCustomizer configureH2ConsoleAndSwaggerEnable() {
+    public WebSecurityCustomizer configureIgnore() {
         return web -> web.ignoring()
-                .requestMatchers("/h2-console/**", // JUnit 테스트 시 오류로 경로 하드코딩 (기존 : PathRequest.toH2Console())
-                        "/swagger-ui/**",
-                        "/swagger-resources/**",
-                        "/v3/api-docs/**"
-                );
+                .requestMatchers(SecurityConstants.IGNORE_WHITELIST);
     }
 
     @Bean

@@ -1,4 +1,4 @@
-package com.groo.chatapp.common.jwt;
+package com.groo.chatapp.security.jwt;
 
 import com.groo.chatapp.domain.member.service.CustomUserDetailsService;
 import io.jsonwebtoken.*;

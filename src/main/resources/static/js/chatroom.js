@@ -69,6 +69,13 @@ dropArea.addEventListener('click', () => {
     fileInput.click();
 });
 
+// 스크롤 이벤트 (상단 도달 시 이전 메시지 로드)
+chatMessages.addEventListener('scroll', () => {
+    if (chatMessages.scrollTop === 0) {
+        loadOlderMessages(roomIdInput.value.trim());
+    }
+});
+
 // todo 추후 진행
 /*
 

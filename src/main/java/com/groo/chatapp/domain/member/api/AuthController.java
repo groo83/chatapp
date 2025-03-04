@@ -29,4 +29,10 @@ public class AuthController {
     public DataResponse<MemberResDto> signin(@Valid @RequestBody MemberReqDto reqDto) {
         return DataResponse.create(authService.signin(reqDto));
     }
+
+    @PostMapping("/no-cache/login")
+    @ResponseStatus(value = HttpStatus.OK)
+    public DataResponse<MemberResDto> noCache_signin(@Valid @RequestBody MemberReqDto reqDto) {
+        return DataResponse.create(authService.noCache_signin(reqDto));
+    }
 }
