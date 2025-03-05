@@ -218,8 +218,64 @@ public class ChatMessageScheduler {
     }
 }
 ```
+### 3. 채팅 서비스 파일 업로드 성능 개선
+#### 문제상황
+- 기존에는 WebSocket(STOMP) 프로토콜을 사용하여 파일을 Base64 인코딩하여 전송하는 방식으로 파일 업로드를 처리
+	- 단점
+	1. Base64 인코딩으로 파일 크기 33% 증가 
+ 	2. CPU 연산 부담 증가 (인코딩 & 디코딩 과정)
+  	3. STOMP(WebSocket)의 비효율적인 바이너리 데이터 처리
+  	   - STOMP는 텍스트 기반 메시지 전송에 최적화 : 바이너리 데이터는 부하가 커지고 성능이 저하
+  	     
+#### 리팩토링
+- WebSocket(STOMP) → HTTP 통신 이용
+	- 장점 
+	1. 네트워크 트래픽 절감 : 원본 크기 그대로 전송
+ 	2. CPU 부하 최소화 : 인코딩 처리 없이 MultipartFile을 활용하여 바이너리 파일을 직접 전송하여 속도 향상 효과
+ 
 
-### 3. 불필요한 컨트롤러 호출 최소화
+#### STOMP 통신
+```java
+private void fileEncodeBase64(ChatMessageDto message) throws IOException {
+    String fileName = message.getFileName();
+    //String fileData = message.getFileData();
+
+    byte[] fileBytes = Base64.getDecoder().decode("");// fileData
+
+    File directory = new File("uploads");
+
+    if (!directory.exists() && !directory.mkdirs()) {
+        throw new IOException("Failed to create directories: " + directory.getAbsolutePath());
+    }
+
+    fileName = fileName.replace(" ", "_");
+
+    File file = new File(directory, fileName);
+    try (FileOutputStream fos = new FileOutputStream(file)) {
+        fos.write(fileBytes);
+    }
+
+    message.setContent("File uploaded successfully: " + fileName);
+}
+```
+
+#### 리팩토링 HTTP 통신 적용
+```java
+@PostMapping("/upload")
+public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
+    String fileName = file.getOriginalFilename();
+
+    fileName = processFileName(fileName);
+
+    Path path = Paths.get(uploadDir, fileName);
+    Files.write(path, file.getBytes());
+
+    return ResponseEntity.ok(fileName);
+}
+```
+
+
+### 4. 불필요한 컨트롤러 호출 최소화
 - 동적인 데이터 처리가 필요하지 않은 경우 컨트롤러를 만들지 않고도 특정 URL에 대해 뷰를 직접 반환
 - DispatcherServlet이 뷰를 직접 매핑하면 불필요한 컨트롤러 호출이 생략되어 약 10~20% 성능 향상
   - 대량의 트래픽을 처리해야 하는 경우 요청당 응답 시간이 줄어들어 처리량 증가
