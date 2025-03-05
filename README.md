@@ -12,16 +12,20 @@
 ![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?style=flat-square&logo=thymeleaf&logoColor=white)
 
 ## Features 
-- 다대다 실시간 채팅 
-	- 텍스트 및 파일 형식 발신 및 수신
-- 채팅방 생성
+- 실시간 채팅 
+	- 텍스트 및 파일 전송 지원
+- 채팅방 생성 및 관리
+	- 다중 사용자 동시 참여 가능
+	- 채팅방 입장 사용자 안내
 - 채팅방 입장한 사용자 목록 조회
-- 채팅방 입장 사용자 안내
-- 사용자 인증 및 등록
+- 채팅 데이터 관리
+	- Redis Stream + H2 Database를 활용한 메시지 저장 및 아카이빙
+- 사용자 인증
+	- Spring Security, JWT 및 Redis 캐시 활용
 
 
 ## Review
-### 1. HandlerMethodArgumentResolver, Redis 캐싱을 활용한 성능 최적화
+### 1. HandlerMethodArgumentResolver + Redis 캐싱을 활용한 인증 성능 개선
 #### 문제 상황
 - Controller 레이어에서 인증 정보를 가져오는 코드 반복
 
@@ -110,7 +114,7 @@ public class RedisCacheService {
 }
 ```
 
-### 2. Redis Stream, H2 Database를 이용한 채팅 메시지 관리
+### 2. Redis Stream + H2 Database를 활용한 채팅 데이터 저장 구조 최적화
 ### 전략
 1. Redis Stream 활용 최근 메세지 빠른 읽기/쓰기
    - Stream 내에서 특정 범위의 데이터를 쉽게 조회할 수 있어, 최근 메시지 목록을 빠르게 가져옴.
@@ -121,7 +125,7 @@ public class RedisCacheService {
 @Repository
 public class RedisMessageRepository implements ChatMessageRepository {
 
-    private static final long MESSAGE_EXPIRATION_DAYS = 1; // 보관기간(일)
+    private static final long MESSAGE_EXPIRATION_DAYS = 7; // 보관기간(일)
     private static final int MESSAGE_PAGE_DEFAULT_SIZE = 20;
     private final StreamOperations<String, String, String> streamOps; // 직렬화 과정 생략을위해 String 선택
 
@@ -215,7 +219,7 @@ public class ChatMessageScheduler {
 }
 ```
 
-### 3. 정적인 뷰 매핑 간소화
+### 3. 불필요한 컨트롤러 호출 최소화
 - 동적인 데이터 처리가 필요하지 않은 경우 컨트롤러를 만들지 않고도 특정 URL에 대해 뷰를 직접 반환
 - DispatcherServlet이 뷰를 직접 매핑하면 불필요한 컨트롤러 호출이 생략되어 약 10~20% 성능 향상
   - 대량의 트래픽을 처리해야 하는 경우 요청당 응답 시간이 줄어들어 처리량 증가
