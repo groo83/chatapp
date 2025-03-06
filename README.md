@@ -167,23 +167,23 @@ public class RedisMessageRepository implements ChatMessageRepository {
 #### ChatMessageService.java
 ```java
 public List<ChatMessageDto> getRecentMessages(Long roomId, String firstId, int size) {
-        List<ChatMessage> resultMessages = new ArrayList<>(redisMessageRepository.getRecentMessages(roomId, firstId, size));
+    List<ChatMessage> resultMessages = new ArrayList<>(redisMessageRepository.getRecentMessages(roomId, firstId, size));
 
-        if (resultMessages.size() < size) {
-            int remainingSize = size - resultMessages.size();
+    if (resultMessages.size() < size) {
+        int remainingSize = size - resultMessages.size();
 
-            // 최신순 (내림차순)
-            List<ChatMessage> h2Messages = h2MessageRepository.getRecentMessages(roomId, firstId, remainingSize);
-            // 오름차순으로 정렬
-            Collections.reverse(h2Messages);
+        // 최신순 (내림차순)
+        List<ChatMessage> h2Messages = h2MessageRepository.getRecentMessages(roomId, firstId, remainingSize);
+        // 오름차순으로 정렬
+        Collections.reverse(h2Messages);
 
-            resultMessages.addAll(0, h2Messages);
-        }
-
-        return resultMessages.stream()
-                .map(ChatMessageDto::fromEntity)
-                .collect(Collectors.toList());
+        resultMessages.addAll(0, h2Messages);
     }
+
+    return resultMessages.stream()
+            .map(ChatMessageDto::fromEntity)
+            .collect(Collectors.toList());
+}
 ```
 
 #### ChatMessageScheduler.java
@@ -283,18 +283,18 @@ public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile fil
 	- 불필요한 컨트롤러 클래스를 줄이고, 코드의 간결성을 유지
 
 ```java
-  @Configuration
-  @RequiredArgsConstructor
-  public class WebMvcConfig implements WebMvcConfigurer {
-  
-      @Override
-      public void addViewControllers(ViewControllerRegistry registry) {
-          registry.addViewController("/home").setViewName("home");
-          registry.addViewController("/").setViewName("home");
-          registry.addViewController("/main").setViewName("main");
-          registry.addViewController("/login").setViewName("login");
-          registry.addViewController("/register").setViewName("register");
-      }
+@Configuration
+@RequiredArgsConstructor
+public class WebMvcConfig implements WebMvcConfigurer {
+
+  @Override
+  public void addViewControllers(ViewControllerRegistry registry) {
+      registry.addViewController("/home").setViewName("home");
+      registry.addViewController("/").setViewName("home");
+      registry.addViewController("/main").setViewName("main");
+      registry.addViewController("/login").setViewName("login");
+      registry.addViewController("/register").setViewName("register");
   }
+}
 ```
 
