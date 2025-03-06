@@ -17,7 +17,8 @@
 - 채팅방 생성 및 관리
 	- 다중 사용자 동시 참여 가능
 	- 채팅방 입장 사용자 안내
-- 채팅방 입장한 사용자 목록 조회
+	- 채팅방 입장한 사용자 목록 조회
+		- Redis Set 활용
 - 채팅 데이터 관리
 	- Redis Stream + H2 Database를 활용한 메시지 저장 및 아카이빙
 - 사용자 인증
@@ -29,7 +30,7 @@
 #### 문제 상황
 - Controller 레이어에서 인증 정보를 가져오는 코드 반복
 
-#### 해결책 1. @UserInfo 애노테이션과 HandlerMethodArgumentResolver 구현
+#### 해결방안 1. @UserInfo 애노테이션과 HandlerMethodArgumentResolver 구현
 - 장점
 	- Controller 레이어 중복 코드 제거
    		1. HandlerMethodArgumentResolver를 활용하여 전역에서 인증 객체를 자동으로 주입
@@ -40,13 +41,13 @@
 		- CustomUserDetails → MemberDto 변환 과정이 매번 실행됨
 		- 불필요한 객체 생성으로 GC(가비지 컬렉션) 부담 증가
 
-#### 해결책 2. Redis 캐싱을 통한 성능 최적화
-- Redis에서 인증객체를 조회 후 캐시에 없으면 DB에서 가져오고, Redis에 저장하여 다음 요청부터는 Redis에서 조회
+#### 해결방안 2. Redis 캐싱을 통한 성능 최적화
+- Redis에서 인증객체를 조회 후 캐시에 없으면 DB에서 가져오고, Redis에 저장하여 다음 요청부터는 Redis 캐싱
   	- 장점
   		1. 불필요한 객체 생성을 줄여 메모리 사용 최적화
   	 	2. 다중 서버 환경에서도 일관된 사용자 인증 정보 유지 가능
 
-#### 리팩토링 전
+#### 적용 전 (SecurityContextHolder.getContext())
 ```java
 public static MemberDto getCurrentMember() {
     SecurityContext context = SecurityContextHolder.getContext();
@@ -118,7 +119,7 @@ public class RedisCacheService {
 ### 전략
 1. Redis Stream 활용 최근 메세지 빠른 읽기/쓰기
    - Stream 내에서 특정 범위의 데이터를 쉽게 조회할 수 있어, 최근 메시지 목록을 빠르게 가져옴.
-2. 특정 기간 이상 지난 메세지 Redis Stream → H2 Database로 마이그레이션하여 메모리 용량 관리
+2. 특정 기간 이상 지난 메세지 Redis Stream → H2 Database로 마이그레이션하여 메모리 사용 최적화
 
 #### RedisMessageRepository.java
 ```java
@@ -127,7 +128,7 @@ public class RedisMessageRepository implements ChatMessageRepository {
 
     private static final long MESSAGE_EXPIRATION_DAYS = 7; // 보관기간(일)
     private static final int MESSAGE_PAGE_DEFAULT_SIZE = 20;
-    private final StreamOperations<String, String, String> streamOps; // 직렬화 과정 생략을위해 String 선택
+    private final StreamOperations<String, String, String> streamOps; // 직렬화 과정 생략을 위해 String 선택
 
     @Override
     public List<ChatMessage> getRecentMessages(Long roomId, String firstId, int size) {
@@ -220,21 +221,21 @@ public class ChatMessageScheduler {
 ```
 ### 3. 채팅 서비스 파일 업로드 성능 개선
 #### 문제상황
-- 기존에는 WebSocket(STOMP) 프로토콜을 사용하여 파일을 Base64 인코딩하여 전송하는 방식으로 파일 업로드를 처리
+- 기존에는 WebSocket(STOMP) 프로토콜을 사용하여 파일을 Base64 인코딩 후 전송하는 방식으로 파일 업로드를 처리
 	- 단점
 	1. Base64 인코딩으로 파일 크기 33% 증가 
  	2. CPU 연산 부담 증가 (인코딩 & 디코딩 과정)
   	3. STOMP(WebSocket)의 비효율적인 바이너리 데이터 처리
   	   - STOMP는 텍스트 기반 메시지 전송에 최적화 : 바이너리 데이터는 부하가 커지고 성능이 저하
   	     
-#### 리팩토링
+#### 해결방안
 - WebSocket(STOMP) → HTTP 통신 이용
 	- 장점 
 	1. 네트워크 트래픽 절감 : 원본 크기 그대로 전송
  	2. CPU 부하 최소화 : 인코딩 처리 없이 MultipartFile을 활용하여 바이너리 파일을 직접 전송하여 속도 향상 효과
- 
+ 	3. 대용량 파일 업로드 처리 가능 : Chunked File Upload(조각 업로드) 방식 도입 가능
 
-#### STOMP 통신
+#### 적용 전 (STOMP 통신)
 ```java
 private void fileEncodeBase64(ChatMessageDto message) throws IOException {
     String fileName = message.getFileName();
@@ -259,7 +260,7 @@ private void fileEncodeBase64(ChatMessageDto message) throws IOException {
 }
 ```
 
-#### 리팩토링 HTTP 통신 적용
+#### 적용 후 (HTTP 통신)
 ```java
 @PostMapping("/upload")
 public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
@@ -274,12 +275,12 @@ public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile fil
 }
 ```
 
-
 ### 4. 불필요한 컨트롤러 호출 최소화
 - 동적인 데이터 처리가 필요하지 않은 경우 컨트롤러를 만들지 않고도 특정 URL에 대해 뷰를 직접 반환
-- DispatcherServlet이 뷰를 직접 매핑하면 불필요한 컨트롤러 호출이 생략되어 약 10~20% 성능 향상
-  - 대량의 트래픽을 처리해야 하는 경우 요청당 응답 시간이 줄어들어 처리량 증가
-- 불필요한 컨트롤러 클래스를 줄이고, 코드의 간결성을 유지
+- 장점
+	- DispatcherServlet이 뷰를 직접 매핑하면 불필요한 컨트롤러 호출이 생략되어 약 10~20% 성능 향상
+	  	- 대량의 트래픽을 처리해야 하는 경우 요청당 응답 시간이 줄어들어 처리량 증가
+	- 불필요한 컨트롤러 클래스를 줄이고, 코드의 간결성을 유지
 
 ```java
   @Configuration
