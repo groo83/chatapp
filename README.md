@@ -220,27 +220,42 @@ public class ChatMessageScheduler {
 }
 ```
 ### 3. 채팅 서비스 파일 업로드 성능 개선
-#### 문제상황
+**문제상황**
+
 - 파일 업로드 시 용량에 따른 속도 저하
-- WebSocket(STOMP) 프로토콜을 사용하여 파일을 Base64 인코딩 후 전송하는 방식으로 파일 업로드를 처리
-	- 파일 Upload 단계에서 서버에서 파일을 base64인코딩 데이터를 클라이언트에 내려주어 다운로드시 서버통신없이 직접 다운로드
-	- 장점
-		1. 서버 부하 감소
-			- 파일 다운로드 시 HTTP 요청 없이 클라이언트에서 직접 다운로드 가능 
-		2. 실시간 전송 가능 (즉시 다운로드 유도)
-			- STOMP(WebSocket)는 양방향 실시간 통신을 지원하므로, 업로드 후 즉시 클라이언트에 파일을 전달
-	- 단점
-		1. Base64 인코딩으로 파일 크기 33% 증가 
-	 	2. CPU 연산 부담 증가 (인코딩 & 디코딩 과정)
-	  	3. STOMP(WebSocket)의 비효율적인 바이너리 데이터 처리
-	  	   - STOMP는 텍스트 기반 메시지 전송에 최적화 : 바이너리 데이터는 부하가 커지고 성능이 저하
-  
-#### 해결방안
-- WebSocket(STOMP) → HTTP 통신 이용
-	- 장점 
-		1. 네트워크 트래픽 절감 : 원본 크기 그대로 전송
-	 	2. CPU 부하 최소화 : 인코딩 처리 없이 MultipartFile을 활용하여 바이너리 파일을 직접 전송하여 속도 향상 효과
-	 	3. 대용량 파일 업로드 처리 가능 : Chunked File Upload(조각 업로드) 방식 도입 가능
+- 기존 WebSocket(STOMP)로 파일을 Base64 인코딩 후 파일 전송
+    - 파일 Upload 단계에서 Base64 인코딩 데이터를 클라이언트에 내려주어 다운로드 시 서버 통신없이 직접 다운로드
+    - 장점
+        1. 서버 부하 감소
+            - 파일 다운로드 시 HTTP 요청 없이 클라이언트에서 직접 다운로드 가능
+        2. 실시간 전송 가능 (즉시 다운로드 유도)
+            - STOMP(WebSocket)는 양방향 실시간 통신을 지원하므로, 업로드 후 즉시 클라이언트에 파일을 전달
+    - 단점
+        1. Base64 인코딩으로 파일 크기 33% 증가
+        2. CPU 연산 부담 증가 (인코딩 & 디코딩 과정)
+        
+
+**해결방안 1. WebSocket(STOMP) `byte[]`로 파일 전송**
+
+- 인코딩 생략한 `byte[]` 형식으로 전송하여 파일 스트림으로 저장
+- 단점
+	1. `MultipartFile`처럼 여러 메타 정보를 자동으로 처리하지 않음
+	   - 파일 형식 정보(파일 이름 등)는 별도로 전달
+	2. 파일 스트림을 이용해 직접 파일로 저장하는 코드가 필요
+		- 메모리에 파일을 로드
+
+**해결방안 2. WebSocket(STOMP) → HTTP 통신**
+
+- HTTP의 `multipart/form-data` 포맷을 기반으로한 ****`MultipartFile` 로 바이너리 파일을 직접 받아 저장
+- 장점
+    1. 네트워크 트래픽 절감 
+        - 원본 크기 그대로 전송
+    2. CPU 부하 최소화 
+        - 인코딩 & 디코딩 과정 생략으로 속도 향상 효과
+    3. 대용량 파일 업로드 처리 가능 
+        - Chunked File Upload(조각 업로드) 방식 도입 가능
+    4. 메모리를 사용하지 않고 파일 이동 가능 
+        - `MultipartFile` 의 내부 구현
 
 #### 적용 전 (STOMP 통신)
 ```java
@@ -278,12 +293,10 @@ private void fileEncodeBase64(ChatMessageDto message) throws IOException {
 ```java
 @PostMapping("/upload")
 public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-    String fileName = file.getOriginalFilename();
+    String fileName = file.getOriginalFilename(); // + "_" + System.currentTimeMillis();
 
     fileName = processFileName(fileName);
-
-    Path path = Paths.get(uploadDir, fileName);
-    Files.write(path, file.getBytes());
+    file.transferTo(new File(fileName));
 
     return ResponseEntity.ok(fileName);
 }
