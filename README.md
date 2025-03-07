@@ -221,13 +221,20 @@ public class ChatMessageScheduler {
 ```
 ### 3. 채팅 서비스 파일 업로드 성능 개선
 #### 문제상황
-- 기존에는 WebSocket(STOMP) 프로토콜을 사용하여 파일을 Base64 인코딩 후 전송하는 방식으로 파일 업로드를 처리
+- 파일 업로드 시 용량에 따른 속도 저하
+- WebSocket(STOMP) 프로토콜을 사용하여 파일을 Base64 인코딩 후 전송하는 방식으로 파일 업로드를 처리
+	- 파일 Upload 단계에서 서버에서 파일을 base64인코딩 데이터를 클라이언트에 내려주어 다운로드시 서버통신없이 직접 다운로드
+	- 장점
+		1. 서버 부하 감소
+			- 파일 다운로드 시 HTTP 요청 없이 클라이언트에서 직접 다운로드 가능 
+		2. 실시간 전송 가능 (즉시 다운로드 유도)
+			- STOMP(WebSocket)는 양방향 실시간 통신을 지원하므로, 업로드 후 즉시 클라이언트에 파일을 전달
 	- 단점
 		1. Base64 인코딩으로 파일 크기 33% 증가 
 	 	2. CPU 연산 부담 증가 (인코딩 & 디코딩 과정)
 	  	3. STOMP(WebSocket)의 비효율적인 바이너리 데이터 처리
 	  	   - STOMP는 텍스트 기반 메시지 전송에 최적화 : 바이너리 데이터는 부하가 커지고 성능이 저하
-  	     
+  
 #### 해결방안
 - WebSocket(STOMP) → HTTP 통신 이용
 	- 장점 
@@ -237,11 +244,20 @@ public class ChatMessageScheduler {
 
 #### 적용 전 (STOMP 통신)
 ```java
+@MessageMapping("/chat/{roomId}") 
+@SendTo("/topic/{roomId}/messages") 
+public ChatMessageDto handleMessage(@DestinationVariable("roomId") Long roomId, @Payload ChatMessageDto message) throws Exception {
+    if ("file".equals(message.getType())) {
+	fileEncodeBase64(message);
+        message.setFileUrl("/files/download/" + URLEncoder.encode(message.getFileName(), StandardCharsets.UTF_8).replaceAll("\\+", "%20"));
+    }
+}
+
 private void fileEncodeBase64(ChatMessageDto message) throws IOException {
     String fileName = message.getFileName();
-    //String fileData = message.getFileData();
+    String fileData = message.getFileData();
 
-    byte[] fileBytes = Base64.getDecoder().decode("");// fileData
+    byte[] fileBytes = Base64.getDecoder().decode(fileData);
 
     File directory = new File("uploads");
 
@@ -255,8 +271,6 @@ private void fileEncodeBase64(ChatMessageDto message) throws IOException {
     try (FileOutputStream fos = new FileOutputStream(file)) {
         fos.write(fileBytes);
     }
-
-    message.setContent("File uploaded successfully: " + fileName);
 }
 ```
 
