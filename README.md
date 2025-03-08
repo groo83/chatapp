@@ -122,7 +122,7 @@ public class RedisCacheService {
 ### 2. Redis Stream + H2 Database를 활용한 채팅 데이터 저장 구조 최적화
 ### 전략
 1. Redis Stream 활용 최근 메세지 빠른 읽기/쓰기
-   - Stream 내에서 특정 범위의 데이터를 쉽게 조회할 수 있어, 최근 메시지 목록을 빠르게 가져옴.
+   - Stream 내에서 특정 범위의 데이터를 쉽게 조회할 수 있어, 최근 메시지 목록을 빠르게 가져옴
 2. 특정 기간 이상 지난 메세지 Redis Stream → H2 Database로 마이그레이션하여 메모리 사용 최적화
 
 #### RedisMessageRepository.java
@@ -241,7 +241,7 @@ public class ChatMessageScheduler {
 
 **해결방안 1. WebSocket(STOMP) `byte[]`로 파일 전송**
 
-- 인코딩 생략한 `byte[]` 형식으로 전송하여 파일 스트림으로 저장
+- 인코딩 생략한 `byte[]` 타입의 바이너리 파일을 전송하여 파일 스트림으로 저장
 - 단점
 	1. `MultipartFile`처럼 여러 메타 정보를 자동으로 처리하지 않음
 	   - 파일 형식 정보(파일 이름 등)는 별도로 전달
@@ -250,7 +250,7 @@ public class ChatMessageScheduler {
 
 **해결방안 2. WebSocket(STOMP) → HTTP 통신**
 
-- HTTP의 `multipart/form-data` 포맷을 기반으로한 ****`MultipartFile` 로 바이너리 파일을 직접 받아 저장
+- HTTP의 `multipart/form-data` 포맷을 기반으로한 `MultipartFile` 로 바이너리 파일을 직접 받아 저장
 - 장점
     1. 네트워크 트래픽 절감 
         - 원본 크기 그대로 전송
@@ -259,7 +259,7 @@ public class ChatMessageScheduler {
     3. 대용량 파일 업로드 처리 가능 
         - Chunked File Upload(조각 업로드) 방식 도입 가능
     4. 메모리 사용 최적화하여 파일 이동 
-    	- `MultipartFile` 은 파일 업로드 시 스트리밍 방식으로 디스크에 임시 파일을 저장하기 때문에 메모리 사용을 최소화 가능
+    	- `MultipartFile` 은 내부적으로 메모리가 아닌 디스크에 스트리밍 방식으로 임시 파일을 저장
 
 #### 적용 전 (STOMP 통신)
 ```java
@@ -297,7 +297,7 @@ private void fileEncodeBase64(ChatMessageDto message) throws IOException {
 ```java
 @PostMapping("/upload")
 public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-    String fileName = file.getOriginalFilename(); // + "_" + System.currentTimeMillis();
+    String fileName = file.getOriginalFilename();
 
     fileName = processFileName(fileName);
     file.transferTo(new File(fileName));
@@ -306,7 +306,7 @@ public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile fil
 }
 ```
 **임시 파일 저장 경로 설정 및 100KB 이하만 메모리 사용 설정**
-```java
+```yml
 spring:
   servlet:
     multipart:
