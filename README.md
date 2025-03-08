@@ -33,10 +33,10 @@
 #### 해결방안 1. @UserInfo 애노테이션과 HandlerMethodArgumentResolver 구현
 - 장점
 	- Controller 레이어 중복 코드 제거
-   		1. HandlerMethodArgumentResolver를 활용하여 전역에서 인증 객체를 자동으로 주입
+   		1. `HandlerMethodArgumentResolver` 를 활용하여 전역에서 인증 객체를 자동으로 주입
 		2. @UserInfo 애노테이션을 도입 : @UserInfo 있는 경우 인증 객체를 Controller에서 수동으로 가져오지 않도록 개선
 - 단점
-	1. 매 요청마다 SecurityContextHolder를 조회해야 함
+	1. 매 요청마다 `SecurityContextHolder` 를 조회해야 함
 	2. 불필요한 인증 객체 변환 로직 실행
 		- CustomUserDetails → MemberDto 변환 과정이 매번 실행됨
 		- 불필요한 객체 생성으로 GC(가비지 컬렉션) 부담 증가
@@ -254,8 +254,8 @@ public class ChatMessageScheduler {
         - 인코딩 & 디코딩 과정 생략으로 속도 향상 효과
     3. 대용량 파일 업로드 처리 가능 
         - Chunked File Upload(조각 업로드) 방식 도입 가능
-    4. 메모리를 사용하지 않고 파일 이동 가능 
-        - `MultipartFile` 의 내부 구현
+    4. 메모리 사용 최적화하여 파일 이동 
+    	- `MultipartFile` 은 파일 업로드 시 스트리밍 방식으로 디스크에 임시 파일을 저장하기 때문에 메모리 사용을 최소화 가능
 
 #### 적용 전 (STOMP 통신)
 ```java
@@ -301,11 +301,18 @@ public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile fil
     return ResponseEntity.ok(fileName);
 }
 ```
-
+**임시 파일 저장 경로 설정 및 100KB 이하만 메모리 사용 설정**
+```java
+spring:
+  servlet:
+    multipart:
+      location: ${user.dir}/uploads/    # default /tmp
+      file-size-threshold: 100          # default 0KB
+```
 ### 4. 불필요한 컨트롤러 호출 최소화
 - 동적인 데이터 처리가 필요하지 않은 경우 컨트롤러를 만들지 않고도 특정 URL에 대해 뷰를 직접 반환
 - 장점
-	- DispatcherServlet이 뷰를 직접 매핑하면 불필요한 컨트롤러 호출이 생략되어 약 10~20% 성능 향상
+	- `DispatcherServlet` 이 뷰를 직접 매핑하면 불필요한 컨트롤러 호출이 생략되어 약 10~20% 성능 향상
 	  	- 대량의 트래픽을 처리해야 하는 경우 요청당 응답 시간이 줄어들어 처리량 증가
 	- 불필요한 컨트롤러 클래스를 줄이고, 코드의 간결성을 유지
 
