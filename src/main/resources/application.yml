@@ -29,8 +29,10 @@ spring:
 #########################################
   servlet:
     multipart:
-      max-file-size: 500MB #1GB # default 1MB
-      max-request-size: 500MB #1GB # default 10MB
+      location: ${user.dir}/uploads/    # default /tmp
+      file-size-threshold: 100          # default 0KB
+      max-file-size: 500MB              # default 1MB
+      max-request-size: 500MB           # default 10MB
 
 #########################################
 #  reids
@@ -63,3 +65,13 @@ jwt:
   refresh:
     expiration: 90
     header: Authorization-refresh
+
+#########################################
+#  server
+#########################################
+server:
+  tomcat:
+    threads:
+      max: 200  # 최대 스레드 증가
+      min-spare: 50
+    accept-count: 500  # 대기 큐 크기 증가

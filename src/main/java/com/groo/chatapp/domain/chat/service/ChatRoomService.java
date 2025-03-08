@@ -37,6 +37,7 @@ public class ChatRoomService {
 
     @Transactional
     public ChatRoomResDto createChatRoom(ChatRoomReqDto reqDto, MemberDto memberDto) {
+        // todo 레디스 member 객체 캐싱되도록 수정되었으니 레디스에서 캐싱해오도록 수정
         Member member = memberService.findByEmail(memberDto.getEmail());
         ChatRoom chatRoom = chatRoomRepository.save(reqDto.toEntity(reqDto, member));
         return ChatRoomResDto.fromEntity(chatRoom);
@@ -51,7 +52,6 @@ public class ChatRoomService {
 
     public ChatRoomResDto enterChatRoom(Long roomId, String firstId, int size) {
         ChatRoom chatRoom = getChatRoom(roomId);
-
         List<ChatMessageDto> recentMessages = chatMessageService.getRecentMessages(roomId, firstId, size);
 
         return ChatRoomResDto.fromEntity(chatRoom, recentMessages);
@@ -65,12 +65,11 @@ public class ChatRoomService {
 
     public void addUserToChatRoom(Long roomId, String nickname) {
         /*if (!nicknameValidator.isValidNickname(nickname)) {
-            throw new IllegalArgumentException("Invalid nickname");
+            throw new InvalidValueException(ErrorCode.INVALID_NICKNAME);
         }*/
 
         Set<String> users = addUserToRoomAndReturnUsers(roomId, nickname);
         sendUpdatedUserList(roomId, users);
-
     }
 
     private Set<String> addUserToRoomAndReturnUsers(Long roomId, String nickname) {
@@ -81,14 +80,13 @@ public class ChatRoomService {
             return joinUsers;
         }
 
-        notifyUserJoin(roomId, nickname, joinUsers);
-
+        notifyUserJoin(roomId, nickname);
         redisService.addUserToChatRoom(key, nickname);
 
         return redisService.getChatRoomUsers(key);
     }
 
-    private void notifyUserJoin(Long roomId, String nickname, Set<String> users) {
+    private void notifyUserJoin(Long roomId, String nickname) {
         sendUserJoinMessage(roomId, nickname);
     }
 
@@ -102,7 +100,7 @@ public class ChatRoomService {
 
     public Set<String> leaveChatRoom(Long roomId, String nickname) {
         /*if (!nicknameValidator.isValidNickname(nickname)) {
-            throw new IllegalArgumentException("Invalid nickname");
+            throw new InvalidValueException(ErrorCode.INVALID_NICKNAME);
         }*/
         String key = RedisKeyGenerator.getChatRoomKey(roomId);
 

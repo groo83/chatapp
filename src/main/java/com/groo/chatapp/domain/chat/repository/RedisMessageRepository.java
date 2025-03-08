@@ -23,7 +23,7 @@ public class RedisMessageRepository implements ChatMessageRepository {
     private static final long MESSAGE_EXPIRATION_DAYS = 1; // 보관기간(일)
     private static final int MESSAGE_PAGE_DEFAULT_SIZE = 20;
 
-    private final StreamOperations<String, String, String> streamOps; // Object, Object형
+    private final StreamOperations<String, String, String> streamOps; // 직렬화 과정 생략을 위해 String 선택
 
     public RedisMessageRepository(StringRedisTemplate redisTemplate) {
         this.streamOps = redisTemplate.opsForStream();
@@ -45,7 +45,7 @@ public class RedisMessageRepository implements ChatMessageRepository {
 
         Range<String> range = (firstId == null) ?
                 Range.unbounded() :
-                Range.open("-", firstId); // firstId 미포함
+                Range.open("-", firstId);
 
         List<MapRecord<String, String, String>> records = streamOps.reverseRange(streamKey, range, Limit.limit().count((size == 0) ? MESSAGE_PAGE_DEFAULT_SIZE : size));
 

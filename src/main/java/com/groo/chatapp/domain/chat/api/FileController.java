@@ -37,12 +37,10 @@ public class FileController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-        String fileName = file.getOriginalFilename(); // + "_" + System.currentTimeMillis();
+        String fileName = file.getOriginalFilename();
 
         fileName = processFileName(fileName);
-
-        Path path = Paths.get(uploadDir, fileName);
-        Files.write(path, file.getBytes());
+        file.transferTo(new File(fileName));
 
         return ResponseEntity.ok(fileName);
     }

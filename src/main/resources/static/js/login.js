@@ -35,7 +35,6 @@ document.getElementById("loginForm").addEventListener("submit", async function (
         //} else {
         //    alert("토큰 형식이 잘못되었습니다.");
         //}
-        const data = btoa(JSON.stringify({ nickname: resData.nickname }));
 
         window.location.href = "main";
     } catch (error) {

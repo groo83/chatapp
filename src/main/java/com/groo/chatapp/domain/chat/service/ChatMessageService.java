@@ -32,12 +32,7 @@ public class ChatMessageService {
     public void handleMessageAndNotifySubscribers(ChatMessageDto message, Authentication authentication) {
         processMessageByType(message);
         sendMessageToSubscribers(message);
-
-        if (authentication != null) {
-            saveMessage(message, authentication);
-        } else {
-            saveMessage(message);  // authentication 없이 저장하는 로직
-        }
+        saveMessage(message, authentication);
     }
 
     public void processMessageByType(ChatMessageDto message) {
@@ -71,16 +66,9 @@ public class ChatMessageService {
         messagingTemplate.convertAndSend("/topic/"+ message.getRoomId() + "/messages", message);
     }
 
-    public void saveMessage(ChatMessageDto dto) {
-        saveMessage(dto, null);
-    }
-
     @Transactional
     public void saveMessage(ChatMessageDto dto, Authentication authentication) {
-        String email = "";
-        if (authentication != null) {
-            email = getEmail(authentication);
-        }
+        String email = (authentication != null) ? getEmail(authentication) : "";
         ChatMessage message = dto.toEntity(dto, email);
         redisMessageRepository.save(message);
     }
