@@ -3,6 +3,7 @@ package com.groo.chatapp.security;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.groo.chatapp.EmbeddedRedisConfig;
 import com.groo.chatapp.common.dto.DataResponse;
 import com.groo.chatapp.domain.member.dto.MemberReqDto;
 import com.groo.chatapp.domain.member.dto.MemberResDto;
@@ -11,12 +12,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.*;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(EmbeddedRedisConfig.class)
 public class JwtAuthTest {
 
     @Autowired

@@ -65,7 +65,6 @@ public class WebSecurityConfig {
         return http.build();
     }
 
-    // H2 DB, Swagger Spring Security ignoring
     @Bean
     public WebSecurityCustomizer configureIgnore() {
         return web -> web.ignoring()

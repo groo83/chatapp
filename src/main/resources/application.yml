@@ -38,7 +38,7 @@ spring:
 #  reids
 #########################################
   redis:
-    host: ${REDIS_HOST:localhost} #my-redis #localhost
+    host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379} # localhost:6379 는 기본값, 로컬에서는 설정 생략 가능
     password: ${REDIS_PASSWORD}
 
@@ -75,3 +75,9 @@ server:
       max: 200  # 최대 스레드 증가
       min-spare: 50
     accept-count: 500  # 대기 큐 크기 증가
+
+#########################################
+#  actuator
+#########################################
+management:
+  endpoints.web.exposure.include: health, info, prometheus

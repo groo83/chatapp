@@ -4,6 +4,7 @@ package com.groo.chatapp.domain.chat.api;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.groo.chatapp.EmbeddedRedisConfig;
 import com.groo.chatapp.common.dto.DataResponse;
 import com.groo.chatapp.config.WebSocketConfig;
 import com.groo.chatapp.domain.chat.dto.ChatMessageDto;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(EmbeddedRedisConfig.class)
 public class ChatControllerTest {
 
     private WebSocketStompClient stompClient;

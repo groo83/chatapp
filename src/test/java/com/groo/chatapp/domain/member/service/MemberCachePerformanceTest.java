@@ -1,16 +1,19 @@
 package com.groo.chatapp.domain.member.service;
 
+import com.groo.chatapp.EmbeddedRedisConfig;
 import com.groo.chatapp.domain.member.Member;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
+@Import(EmbeddedRedisConfig.class)
 public class MemberCachePerformanceTest {
 
     @Autowired

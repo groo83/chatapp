@@ -15,6 +15,6 @@ public class SecurityConstants {
     };
 
     public static final String[] IGNORE_WHITELIST = {
-            "/swagger-ui/**", "/swagger-resources/**", "/v3/controller-docs/**", "/h2-console/**"
+            "/swagger-ui/**", "/swagger-resources/**", "/v3/controller-docs/**", "/h2-console/**", "/actuator/**"
     };
 }

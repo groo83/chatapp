@@ -1,6 +1,7 @@
 package com.groo.chatapp.domain.member.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.groo.chatapp.EmbeddedRedisConfig;
 import com.groo.chatapp.domain.member.dto.MemberRegReqDto;
 import com.groo.chatapp.domain.member.dto.MemberReqDto;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@Import(EmbeddedRedisConfig.class)
 public class AuthControllerTest {
 
     @Autowired
@@ -45,8 +48,8 @@ public class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(reqDto)))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.data.email").value("pjy3696@naver.com"))
-                .andExpect(jsonPath("$.data.nickname").value("jiyeong"));
+                .andExpect(jsonPath("$.data.email").value("jy@google.com"))
+                .andExpect(jsonPath("$.data.nickname").value("jy"));
     }
 
     @Test

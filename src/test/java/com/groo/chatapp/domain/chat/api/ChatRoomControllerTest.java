@@ -3,6 +3,7 @@ package com.groo.chatapp.domain.chat.api;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.groo.chatapp.EmbeddedRedisConfig;
 import com.groo.chatapp.common.dto.DataResponse;
 import com.groo.chatapp.domain.chat.dto.ChatRoomReqDto;
 import com.groo.chatapp.domain.chat.dto.ChatRoomResDto;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.*;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.test.context.support.WithUserDetails;
@@ -24,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc // resttemplate 대신 사용
+@Import(EmbeddedRedisConfig.class)
 class ChatRoomControllerTest {
 
     @Autowired
