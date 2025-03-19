@@ -10,6 +10,7 @@ import com.groo.chatapp.config.WebSocketConfig;
 import com.groo.chatapp.domain.chat.dto.ChatMessageDto;
 import com.groo.chatapp.domain.member.dto.MemberReqDto;
 import com.groo.chatapp.domain.member.dto.MemberResDto;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +84,16 @@ public class ChatControllerTest {
                 new StompSessionHandlerAdapter() {}).get(3, TimeUnit.SECONDS);
     }
 
+    @AfterEach
+    public void down() throws Exception {
+        if (stompSession != null && stompSession.isConnected()) {
+            stompSession.disconnect();
+        }
+        if (stompClient != null) {
+            stompClient.stop();
+        }
+    }
+
     @Test
     public void testHandleMessage() throws Exception {
         // 메시지 전송을 검증할 CountDownLatch (비동기 응답을 기다리기 위한 도구)
@@ -114,7 +125,7 @@ public class ChatControllerTest {
         stompSession.send(SEND_URL, testMessage);
 
         // latch가 5초 이내에 0이 되면 성공
-        assertThat(latch.await(50000, TimeUnit.SECONDS)).isTrue();
+        assertThat(latch.await(5000, TimeUnit.SECONDS)).isTrue();
 
         // 받은 메시지가 예상한 값인지 확인
         assertThat(receivedMessage[0]).isNotNull();
