@@ -69,7 +69,8 @@ public class RedisConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.NON_FINAL) // @class 포함
+        objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(),
+                        ObjectMapper.DefaultTyping.NON_FINAL) // @class 포함
                 .findAndRegisterModules()
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
@@ -86,8 +87,10 @@ public class RedisConfig {
                 .cacheDefaults(cacheConfig)
                 .withInitialCacheConfigurations(Map.of(
                         "memberCache", RedisCacheConfiguration.defaultCacheConfig()
-                                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer.UTF_8))
-                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+                                .serializeKeysWith(RedisSerializationContext
+                                        .SerializationPair.fromSerializer(StringRedisSerializer.UTF_8))
+                                .serializeValuesWith(RedisSerializationContext
+                                        .SerializationPair.fromSerializer(serializer))
                                 .entryTtl(Duration.ofMinutes(10))// 멤버 캐시는 10분 TTL
                 ))
                 .build();

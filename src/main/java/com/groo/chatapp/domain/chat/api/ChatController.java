@@ -23,7 +23,7 @@ public class ChatController {
 
     @MessageMapping("/chat")
     public void handleMessage(@Payload ChatMessageDto message, Authentication authentication) {
-        messageService.handleMessageAndNotifySubscribers(message, authentication);
+        messageService.handleMessage(message, authentication);
     }
 
     private void fileEncodeBase64(ChatMessageDto message) throws IOException {

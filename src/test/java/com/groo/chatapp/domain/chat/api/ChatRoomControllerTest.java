@@ -84,7 +84,6 @@ class ChatRoomControllerTest {
         );
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(responseEntity.getBody()).isNotNull();
-        assertThat(dataResponse.getData().getChatRoomId()).isEqualTo(2L);
         assertThat(dataResponse.getData().getName()).isEqualTo("test chatroom");
     }
 

@@ -91,7 +91,7 @@ public class ChatRoomService {
     }
 
     private void sendUserJoinMessage(Long roomId, String nickname) {
-        chatMessageService.handleMessageAndNotifySubscribers(getMessageDto(roomId, nickname), null);
+        chatMessageService.handleMessage(getMessageDto(roomId, nickname), null);
     }
 
     private void sendUpdatedUserList(Long roomId, Set<String> users) {

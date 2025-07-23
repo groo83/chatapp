@@ -1,7 +1,6 @@
 package com.groo.chatapp.domain.chat.dto;
 
 import com.groo.chatapp.domain.chat.ChatMessage;
-import jakarta.validation.Valid;
 import lombok.*;
 
 @Getter
@@ -30,16 +29,16 @@ public class ChatMessageDto {
                 .build();
     }
 
-    public ChatMessage toEntity(@Valid ChatMessageDto reqDto, String email) {
+    public ChatMessage toEntity(String email) {
         return ChatMessage.builder()
-                .chatRoomId(reqDto.getRoomId())
-                .nickname(reqDto.getSender())
+                .chatRoomId(this.roomId)
+                .nickname(this.sender)
                 .email(email)
-                .content(reqDto.getContent())
-                .fileUrl(reqDto.getFileUrl())
-                .fileName(reqDto.getFileName())
-                .type(reqDto.getType())
-                .messageId(reqDto.getMessageId())
+                .content(this.content)
+                .fileUrl(this.fileUrl)
+                .fileName(this.fileName)
+                .type(this.type)
+                .messageId(this.messageId)
                 .build();
     }
 }

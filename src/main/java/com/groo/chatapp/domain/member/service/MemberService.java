@@ -29,7 +29,6 @@ public class MemberService {
         // return this.getSpringProxy().cacheByEmail(memberReqDto.getEmail());
         Member cachedMember = getMemberFromCache(email);
         return cachedMember != null ? cachedMember : findAndCacheMember(email);
-
     }
 
     private Member getMemberFromCache(String email) {

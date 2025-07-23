@@ -29,13 +29,13 @@ public class ChatMessageService {
     private final RedisMessageRepository redisMessageRepository;
     private final H2MessageRepository h2MessageRepository;
 
-    public void handleMessageAndNotifySubscribers(ChatMessageDto message, Authentication authentication) {
-        processMessageByType(message);
-        sendMessageToSubscribers(message);
-        saveMessage(message, authentication);
+    public void handleMessage(ChatMessageDto message, Authentication authentication) {
+        prepareMessageContent(message);
+        notifySubscribers(message);
+        persistMessage(message, authentication);
     }
 
-    public void processMessageByType(ChatMessageDto message) {
+    public void prepareMessageContent(ChatMessageDto message) {
         if (isFileTypeMessage(message)) {
             String fileUrl = generateFileUrl(message.getFileName());
             message.setFileUrl(fileUrl);
@@ -62,14 +62,14 @@ public class ChatMessageService {
         return URLEncoder.encode(fileName, UTF_8).replaceAll("\\+", "%20");
     }
 
-    public void sendMessageToSubscribers(ChatMessageDto message) {
+    public void notifySubscribers(ChatMessageDto message) {
         messagingTemplate.convertAndSend("/topic/"+ message.getRoomId() + "/messages", message);
     }
 
     @Transactional
-    public void saveMessage(ChatMessageDto dto, Authentication authentication) {
+    public void persistMessage(ChatMessageDto dto, Authentication authentication) {
         String email = (authentication != null) ? getEmail(authentication) : "";
-        ChatMessage message = dto.toEntity(dto, email);
+        ChatMessage message = dto.toEntity(email);
         redisMessageRepository.save(message);
     }
 
