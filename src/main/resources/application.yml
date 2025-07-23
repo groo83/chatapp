@@ -63,7 +63,7 @@ jwt:
     header: Authorization
 
   refresh:
-    expiration: 90
+    expiration: 1209600000
     header: Authorization-refresh
 
 #########################################
